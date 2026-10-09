@@ -41,6 +41,17 @@ if ($detectedYears.Count -eq 0) {
     Write-Host "Detected installed Revit versions: $($detectedYears -join ', ')" -ForegroundColor Green
 }
 
+# Check if Revit is running
+while (Get-Process Revit -ErrorAction SilentlyContinue) {
+    Write-Warning "Phat hien Autodesk Revit dang chay!"
+    Write-Host "Vui long luu file va DONG PHAN MEM REVIT de tiep tuc cai dat." -ForegroundColor Yellow
+    $ans = Read-Host "Nhan [Enter] sau khi da dong Revit (hoac go 'Q' de huy)"
+    if ($ans -eq 'Q' -or $ans -eq 'q') {
+        Write-Host "Da huy cai dat." -ForegroundColor Red
+        exit 0
+    }
+}
+
 $installedCount = 0
 
 foreach ($year in $detectedYears) {

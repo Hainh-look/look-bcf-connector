@@ -91,10 +91,38 @@ Type: filesandordirs; Name: "{userappdata}\Autodesk\Revit\Addins\2026\LookBcf"
 Type: files; Name: "{userappdata}\Autodesk\Revit\Addins\2026\LookBcf.addin"
 
 [Code]
+// Check if Autodesk Revit is currently running using WMI
+function IsRevitRunning(): Boolean;
+var
+  FSWbemLocator: Variant;
+  FWMIService: Variant;
+  FWbemObjectSet: Variant;
+begin
+  Result := False;
+  try
+    FSWbemLocator := CreateOleObject('WbemScripting.SWbemLocator');
+    FWMIService := FSWbemLocator.ConnectServer('', 'root\CIMV2', '', '');
+    FWbemObjectSet := FWMIService.ExecQuery('SELECT ProcessId FROM Win32_Process WHERE Name = "Revit.exe"');
+    Result := (FWbemObjectSet.Count > 0);
+  except
+    Result := False;
+  end;
+end;
+
 // Pre-flight check: ensure Revit is closed before installing to prevent file locking
 function InitializeSetup(): Boolean;
-var
-  ErrorCode: Integer;
 begin
+  while IsRevitRunning() do
+  begin
+    if MsgBox('Phan mem Autodesk Revit dang chay.'#13#13 +
+              'Vui long luu cong viec va dong Revit truoc khi tiep tuc cai dat Look BCF.'#13#13 +
+              'Nhan "Retry" sau khi da dong Revit, hoac "Cancel" de thoat.',
+              mbConfirmation, MB_RETRYCANCEL) = IDCANCEL then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
   Result := True;
 end;
+

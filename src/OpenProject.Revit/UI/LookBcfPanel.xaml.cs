@@ -1,9 +1,14 @@
 using System;
 using System.IO;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
+using System.Windows.Threading;
 using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.Wpf;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using OpenProject.Revit.Entry;
@@ -16,37 +21,103 @@ namespace OpenProject.Revit.UI
 {
   public partial class LookBcfPanel : UserControl
   {
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern IntPtr LoadLibrary(string lpFileName);
+
     private const string DefaultServerUrl = "https://bim.lookbim.com";
     private string _currentServerUrl = DefaultServerUrl;
+    private WebView2 _webView;
     private bool _isInitialized;
+    private bool _isInitializing;
 
     public LookBcfPanel()
     {
       InitializeComponent();
       Loaded += OnLoaded;
+      IsVisibleChanged += OnIsVisibleChanged;
     }
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
+    private void OnLoaded(object sender, RoutedEventArgs e)
     {
-      if (_isInitialized) return;
-      _isInitialized = true;
-      await InitializeWebViewAsync();
+      TryInitializeWhenReady();
+    }
+
+    private void OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+      if ((bool)e.NewValue)
+      {
+        TryInitializeWhenReady();
+      }
+    }
+
+    private void TryInitializeWhenReady()
+    {
+      if (_isInitialized || _isInitializing || !IsVisible) return;
+
+      Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(async () =>
+      {
+        if (_isInitialized || _isInitializing || !IsVisible) return;
+        await InitializeWebViewAsync();
+      }));
     }
 
     private async Task InitializeWebViewAsync()
     {
+      if (_isInitialized || _isInitializing) return;
+      _isInitializing = true;
+
       try
       {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        // 1. Verify valid HWND parent exists
+        var source = PresentationSource.FromVisual(this) as HwndSource;
+        if (source == null || source.Handle == IntPtr.Zero || !IsVisible)
+        {
+          _isInitializing = false;
+          return;
+        }
+
+        LoadingOverlay.Visibility = Visibility.Visible;
+        ErrorOverlay.Visibility = Visibility.Collapsed;
+
+        // 2. Set WebView2Loader search path to add-in directory
+        var addinDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        if (!string.IsNullOrEmpty(addinDir))
+        {
+          var loaderPath = Path.Combine(addinDir, "WebView2Loader.dll");
+          if (File.Exists(loaderPath))
+          {
+            LoadLibrary(loaderPath);
+          }
+          try
+          {
+            CoreWebView2Environment.SetLoaderDllFolderPath(addinDir);
+          }
+          catch
+          {
+            // Ignore if already set
+          }
+        }
+
+        // 3. User Data Folder in LocalAppData (prevents roaming/network lockups)
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var userDataFolder = Path.Combine(localAppData, "LookBcf", "WebView2Profile");
         Directory.CreateDirectory(userDataFolder);
 
-        var environment = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
-        await WebViewControl.EnsureCoreWebView2Async(environment);
+        // 4. Create and attach WebView2 control dynamically
+        if (_webView == null)
+        {
+          _webView = new WebView2();
+          WebViewContainer.Children.Clear();
+          WebViewContainer.Children.Add(_webView);
+        }
 
-        WebViewControl.CoreWebView2.Settings.IsStatusBarEnabled = false;
-        WebViewControl.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
-        WebViewControl.CoreWebView2.Settings.AreDevToolsEnabled = true;
+        // 5. Initialize environment
+        var environment = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
+        await _webView.EnsureCoreWebView2Async(environment);
+
+        _webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+        _webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
+        _webView.CoreWebView2.Settings.AreDevToolsEnabled = true;
 
         // Bridge script injection into every document created
         const string bridgeScript = @"
@@ -66,21 +137,39 @@ namespace OpenProject.Revit.UI
     window.dispatchEvent(new Event('revit.plugin.ready'));
 })();
 ";
-        await WebViewControl.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(bridgeScript);
+        await _webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(bridgeScript);
 
-        WebViewControl.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
-        WebViewControl.CoreWebView2.NavigationCompleted += (s, e) =>
+        _webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
+        _webView.CoreWebView2.NavigationCompleted += (s, e) =>
         {
           LoadingOverlay.Visibility = Visibility.Collapsed;
         };
 
+        _isInitialized = true;
         NavigateToUrl(_currentServerUrl);
       }
       catch (Exception ex)
       {
         Log.Error(ex, "Failed to initialize WebView2 in Look BCF Panel");
         LoadingOverlay.Visibility = Visibility.Collapsed;
-        MessageHandler.ShowError(ex, "Không thể khởi tạo Microsoft Edge WebView2. Vui lòng đảm bảo WebView2 Runtime đã được cài đặt.");
+        ErrorOverlay.Visibility = Visibility.Visible;
+        ErrorMessageText.Text = ex.Message;
+
+        // Clean up broken control to prevent layout crash
+        if (_webView != null)
+        {
+          try
+          {
+            WebViewContainer.Children.Clear();
+            _webView.Dispose();
+          }
+          catch { }
+          _webView = null;
+        }
+      }
+      finally
+      {
+        _isInitializing = false;
       }
     }
 
@@ -148,11 +237,11 @@ namespace OpenProject.Revit.UI
       {
         try
         {
-          if (WebViewControl.CoreWebView2 == null) return;
+          if (_webView?.CoreWebView2 == null) return;
           var messageData = JsonConvert.SerializeObject(new { messageType, trackingId, messagePayload });
           var encodedMessage = JsonConvert.ToString(messageData);
           var script = $"if (window.RevitBridge && window.RevitBridge.sendMessageToOpenProject) {{ window.RevitBridge.sendMessageToOpenProject({encodedMessage}); }}";
-          await WebViewControl.CoreWebView2.ExecuteScriptAsync(script);
+          await _webView.CoreWebView2.ExecuteScriptAsync(script);
         }
         catch (Exception ex)
         {
@@ -169,10 +258,18 @@ namespace OpenProject.Revit.UI
         url = "https://" + url;
       }
       _currentServerUrl = url;
-      ServerUrlText.Text = new Uri(url).Host;
-      ServerUrlInput.Text = url;
-      LoadingOverlay.Visibility = Visibility.Visible;
-      WebViewControl.Source = new Uri(url);
+      try
+      {
+        ServerUrlText.Text = new Uri(url).Host;
+        ServerUrlInput.Text = url;
+      }
+      catch { }
+
+      if (_webView != null && _isInitialized)
+      {
+        LoadingOverlay.Visibility = Visibility.Visible;
+        _webView.Source = new Uri(url);
+      }
     }
 
     private void BtnHome_Click(object sender, RoutedEventArgs e)
@@ -182,21 +279,41 @@ namespace OpenProject.Revit.UI
 
     private void BtnRefresh_Click(object sender, RoutedEventArgs e)
     {
-      WebViewControl.Reload();
+      _webView?.Reload();
     }
 
     private void BtnSettings_Click(object sender, RoutedEventArgs e)
     {
-      SettingsFlyout.Visibility = SettingsFlyout.Visibility == Visibility.Visible 
-        ? Visibility.Collapsed 
-        : Visibility.Visible;
+      try
+      {
+        SettingsFlyout.Visibility = SettingsFlyout.Visibility == Visibility.Visible 
+          ? Visibility.Collapsed 
+          : Visibility.Visible;
+      }
+      catch (Exception ex)
+      {
+        Log.Error(ex, "Error toggling settings flyout");
+      }
     }
 
     private void BtnSaveServer_Click(object sender, RoutedEventArgs e)
     {
-      var newUrl = ServerUrlInput.Text.Trim();
-      SettingsFlyout.Visibility = Visibility.Collapsed;
-      NavigateToUrl(newUrl);
+      try
+      {
+        var newUrl = ServerUrlInput.Text.Trim();
+        SettingsFlyout.Visibility = Visibility.Collapsed;
+        NavigateToUrl(newUrl);
+      }
+      catch (Exception ex)
+      {
+        Log.Error(ex, "Error saving server URL");
+      }
+    }
+
+    private async void BtnRetry_Click(object sender, RoutedEventArgs e)
+    {
+      ErrorOverlay.Visibility = Visibility.Collapsed;
+      await InitializeWebViewAsync();
     }
   }
 }

@@ -3,7 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
              mc:Ignorable="d" 
              d:DesignHeight="700" d:DesignWidth="400"
              Background="#F3F4F6">
@@ -55,15 +54,25 @@
             </Grid>
         </Border>
 
-        <!-- Main WebView2 Container -->
+        <!-- Main WebView2 Container (Lazy dynamically attached) -->
         <Grid Grid.Row="1">
-            <wv2:WebView2 x:Name="WebViewControl" />
+            <Grid x:Name="WebViewContainer" />
 
             <!-- Loading Splash -->
             <Border x:Name="LoadingOverlay" Background="#0A192F" Visibility="Visible">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                     <TextBlock Text="Đang kết nối Look BIM..." Foreground="#E2E8F0" FontSize="13" HorizontalAlignment="Center" Margin="0,0,0,8" />
                     <ProgressBar IsIndeterminate="True" Width="160" Height="4" Foreground="#10B981" Background="#1E293B" BorderThickness="0" />
+                </StackPanel>
+            </Border>
+
+            <!-- Error State Banner -->
+            <Border x:Name="ErrorOverlay" Background="#0A192F" Visibility="Collapsed" Padding="20">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="320">
+                    <TextBlock Text="⚠" FontSize="36" Foreground="#EF4444" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                    <TextBlock Text="Không thể tải giao diện Look BCF" FontWeight="Bold" Foreground="#FFFFFF" FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,6" />
+                    <TextBlock x:Name="ErrorMessageText" Text="Đang khởi tạo kết nối..." Foreground="#94A3B8" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,16" />
+                    <Button Click="BtnRetry_Click" Content="Thử kết nối lại" Background="#10B981" Foreground="#FFFFFF" Padding="16,6" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Center" FontWeight="SemiBold" />
                 </StackPanel>
             </Border>
         </Grid>
