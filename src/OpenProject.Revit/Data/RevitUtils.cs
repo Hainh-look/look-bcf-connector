@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Autodesk.Revit.DB;
 using OpenProject.Shared.Math3D;
 using decMath = DecimalMath.DecimalEx;
@@ -112,7 +112,7 @@ namespace OpenProject.Revit.Data
     /// <returns></returns>
     public static double ToMeters(this double internalUnits)
     {
-#if Version2021 || Version2022
+#if Version2021 || Version2022 || Version2024 || Version2025 || RevitNetFramework || RevitNetCore
       return UnitUtils.ConvertFromInternalUnits(internalUnits, UnitTypeId.Meters);
 #else
       return UnitUtils.ConvertFromInternalUnits(internalUnits, DisplayUnitType.DUT_METERS);
@@ -126,7 +126,7 @@ namespace OpenProject.Revit.Data
     /// <returns></returns>
     public static double ToInternalRevitUnit(this double meters)
     {
-#if Version2021 || Version2022
+#if Version2021 || Version2022 || Version2024 || Version2025 || RevitNetFramework || RevitNetCore
       return UnitUtils.ConvertToInternalUnits(meters, UnitTypeId.Meters);
 #else
       return UnitUtils.ConvertToInternalUnits(meters, DisplayUnitType.DUT_METERS);

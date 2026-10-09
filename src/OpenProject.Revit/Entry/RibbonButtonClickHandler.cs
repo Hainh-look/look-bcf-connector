@@ -1,4 +1,4 @@
-﻿using Autodesk.Revit.UI;
+using Autodesk.Revit.UI;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -12,7 +12,11 @@ namespace OpenProject.Revit.Entry
 {
   public static class RibbonButtonClickHandler
   {
-#if Version2022
+#if RevitNetCore
+    public const string RevitVersion = "2025+";
+#elif Version2024 || RevitNetFramework
+    public const string RevitVersion = "2021-2024";
+#elif Version2022
     public const string RevitVersion = "2022";
 #elif Version2021
     public const string RevitVersion = "2021";
@@ -20,6 +24,8 @@ namespace OpenProject.Revit.Entry
     public const string RevitVersion = "2020";
 #elif Version2019
     public const string RevitVersion = "2019";
+#else
+    public const string RevitVersion = "2021-2026";
 #endif
 
     private static Process _opBrowserProcess;
@@ -61,13 +67,19 @@ namespace OpenProject.Revit.Entry
 
     private static void EnsureExternalOpenProjectAppIsRunning(ExternalCommandData commandData)
     {
-      //Version check
-      if (!commandData.Application.Application.VersionName.Contains(RevitVersion))
+      // Version check
+      var versionName = commandData.Application.Application.VersionName;
+#if RevitNetCore
+      var isSupported = versionName.Contains("2025") || versionName.Contains("2026") || versionName.Contains("2027");
+#else
+      var isSupported = versionName.Contains("2021") || versionName.Contains("2022") || versionName.Contains("2023") || versionName.Contains("2024");
+#endif
+      if (!isSupported)
       {
         MessageHandler.ShowWarning(
           "Unexpected version",
           "The Revit version does not match the expectations.",
-          $"This Add-In was built and tested only for Revit {RevitVersion}. Further usage is at your own risk");
+          $"This build was prepared for Revit {RevitVersion} (running on {versionName}). Further usage is at your own risk.");
       }
 
       if (_opBrowserProcess is { HasExited: false })
@@ -90,8 +102,7 @@ namespace OpenProject.Revit.Entry
 
     private static string GetOpenProjectBrowserExecutable()
     {
-      var currentAssemblyPathUri = Assembly.GetExecutingAssembly().CodeBase;
-      var currentAssemblyPath = Uri.UnescapeDataString(new Uri(currentAssemblyPathUri).AbsolutePath).Replace("/", "\\");
+      var currentAssemblyPath = Assembly.GetExecutingAssembly().Location;
       var currentFolder = Path.GetDirectoryName(currentAssemblyPath) ?? string.Empty;
 
       return Path.Combine(currentFolder, ConfigurationConstant.OpenProjectBrowserExecutablePath);
