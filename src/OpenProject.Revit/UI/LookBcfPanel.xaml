@@ -1,0 +1,86 @@
+<UserControl x:Class="OpenProject.Revit.UI.LookBcfPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="400"
+             Background="#F3F4F6">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="46" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Top Header Bar -->
+        <Border Grid.Row="0" Background="#0A192F" Padding="12,0" BorderBrush="#1E293B" BorderThickness="0,0,0,1">
+            <Grid VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Brand Logo / Title -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#10B981" Width="8" Height="8" CornerRadius="4" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <TextBlock Text="LOOK BCF" FontWeight="Bold" FontSize="14" Foreground="#FFFFFF" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Server Info Pill -->
+                <Border Grid.Column="1" HorizontalAlignment="Center" Background="#1E293B" CornerRadius="12" Padding="10,3" Margin="8,0">
+                    <TextBlock x:Name="ServerUrlText" Text="bim.lookbim.com" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" />
+                </Border>
+
+                <!-- Actions Toolbar -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Home Button -->
+                    <Button x:Name="BtnHome" Click="BtnHome_Click" ToolTip="Về trang chủ Look BIM"
+                            Width="28" Height="28" Margin="2,0" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                        <TextBlock Text="⌂" FontSize="16" Foreground="#CBD5E1" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Button>
+                    <!-- Refresh Button -->
+                    <Button x:Name="BtnRefresh" Click="BtnRefresh_Click" ToolTip="Tải lại trang (F5)"
+                            Width="28" Height="28" Margin="2,0" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                        <TextBlock Text="↻" FontSize="15" Foreground="#CBD5E1" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Button>
+                    <!-- Settings Button -->
+                    <Button x:Name="BtnSettings" Click="BtnSettings_Click" ToolTip="Cài đặt kết nối máy chủ"
+                            Width="28" Height="28" Margin="2,0" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                        <TextBlock Text="⚙" FontSize="14" Foreground="#CBD5E1" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main WebView2 Container -->
+        <Grid Grid.Row="1">
+            <wv2:WebView2 x:Name="WebViewControl" />
+
+            <!-- Loading Splash -->
+            <Border x:Name="LoadingOverlay" Background="#0A192F" Visibility="Visible">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="Đang kết nối Look BIM..." Foreground="#E2E8F0" FontSize="13" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                    <ProgressBar IsIndeterminate="True" Width="160" Height="4" Foreground="#10B981" Background="#1E293B" BorderThickness="0" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Settings Drawer / Flyout (Optional inline config) -->
+        <Border x:Name="SettingsFlyout" Grid.Row="2" Background="#1E293B" Padding="12" Visibility="Collapsed" BorderBrush="#334155" BorderThickness="0,1,0,0">
+            <StackPanel>
+                <TextBlock Text="Cấu hình máy chủ OpenProject / BCF:" FontSize="11" Foreground="#94A3B8" Margin="0,0,0,4" />
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="ServerUrlInput" Grid.Column="0" Text="https://bim.lookbim.com" Padding="6,4" Background="#0F172A" Foreground="#FFFFFF" BorderBrush="#334155" />
+                    <Button Grid.Column="1" Click="BtnSaveServer_Click" Content="Áp dụng" Padding="10,4" Margin="6,0,0,0" Background="#10B981" Foreground="#FFFFFF" BorderThickness="0" Cursor="Hand" />
+                </Grid>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

@@ -6,6 +6,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.UI;
+using OpenProject.Revit.UI;
 using OpenProject.Shared.Logging;
 
 namespace OpenProject.Revit.Entry
@@ -13,79 +14,62 @@ namespace OpenProject.Revit.Entry
   [Transaction(TransactionMode.Manual)]
   public class AppMain : IExternalApplication
   {
+    public static readonly DockablePaneId LookBcfPaneId = new DockablePaneId(new Guid("7D9E0A4E-4394-4328-9844-4F8177F8DC90"));
     private readonly string _path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
-    #region Revit IExternalApplciation Implementation
+    #region Revit IExternalApplication Implementation
 
-    /// <summary>
-    /// Startup
-    /// </summary>
-    /// <param name="application"></param>
-    /// <returns></returns>
     public Result OnStartup(UIControlledApplication application)
     {
       try
       {
-        Logger.ConfigureLogger("OpenProject.Revit.Log..txt");
+        Logger.ConfigureLogger("LookBcf.Revit.Log..txt");
 
-        // Tab
-        const string tabName = "OpenProject";
-        const string panelName = "BCF management";
-        application.CreateRibbonTab(tabName);
-        RibbonPanel panel = application.CreateRibbonPanel(tabName, panelName);
+        // 1. Register Dockable Pane
+        var paneProvider = new LookBcfDockablePaneProvider();
+        application.RegisterDockablePane(LookBcfPaneId, "Look BCF", paneProvider);
 
-        // Button Data
-        RibbonItem browserButtonItem = panel.AddItem(
-          new PushButtonData("OpenProject",
-            "OpenProject",
-            Path.Combine(_path, "OpenProject.Revit.dll"),
-            "OpenProject.Revit.Entry.CmdMain"));
-
-        if (browserButtonItem is PushButton browserButton)
+        // 2. Setup Ribbon Tab & Panel
+        const string tabName = "Look BCF";
+        const string panelName = "BCF Management";
+        
+        try
         {
-          browserButton.Image = LoadPngImgSource("OpenProject.Revit.Assets.OpenProjectLogo16.png");
-          browserButton.LargeImage = LoadPngImgSource("OpenProject.Revit.Assets.OpenProjectLogo32.png");
-          browserButton.ToolTip = "OpenProject browser";
+          application.CreateRibbonTab(tabName);
+        }
+        catch
+        {
+          // Tab might already exist
         }
 
-        RibbonItem settingsButtonItem = panel.AddItem(
-          new PushButtonData("Settings",
-            "Settings",
-            Path.Combine(_path, "OpenProject.Revit.dll"),
-            "OpenProject.Revit.Entry.CmdMainSettings"));
+        RibbonPanel panel = application.CreateRibbonPanel(tabName, panelName);
 
-        if (settingsButtonItem is PushButton settingsButton)
+        // 3. Add Look BCF Dockable Panel Button
+        var assemblyLocation = Assembly.GetExecutingAssembly().Location;
+        RibbonItem bcfButtonItem = panel.AddItem(
+          new PushButtonData("LookBcfToggle",
+            "Look BCF",
+            assemblyLocation,
+            "OpenProject.Revit.Entry.CmdMain"));
+
+        if (bcfButtonItem is PushButton bcfButton)
         {
-          settingsButton.Image = LoadPngImgSource("OpenProject.Revit.Assets.Settings32.png");
-          settingsButton.LargeImage = LoadPngImgSource("OpenProject.Revit.Assets.Settings32.png");
-          settingsButton.ToolTip = "OpenProject Revit Add-in settings";
+          bcfButton.Image = LoadPngImgSource("OpenProject.Revit.Assets.OpenProjectLogo16.png");
+          bcfButton.LargeImage = LoadPngImgSource("OpenProject.Revit.Assets.OpenProjectLogo32.png");
+          bcfButton.ToolTip = "Mở bảng kết nối Look BCF (OpenProject BIM)";
         }
       }
       catch (Exception exception)
       {
-        MessageBox.Show("exception: " + exception);
+        MessageBox.Show("Exception on Look BCF startup: " + exception, "Look BCF Error");
         return Result.Failed;
       }
 
       return Result.Succeeded;
     }
 
-    /// <summary>
-    /// Shut Down
-    /// </summary>
-    /// <param name="application"></param>
-    /// <returns></returns>
     public Result OnShutdown(UIControlledApplication application)
     {
-      try
-      {
-        RibbonButtonClickHandler.IpcHandler?.SendShutdownRequestToDesktopApp();
-      }
-      catch
-      {
-        // TODO -> What to do when Bcfier.Win can't be stopped?
-      }
-
       return Result.Succeeded;
     }
 
@@ -93,35 +77,23 @@ namespace OpenProject.Revit.Entry
 
     #region Private Members
 
-    /// <summary>
-    /// Load an Image Source from File
-    /// </summary>
-    /// <param name="sourceName"></param>
-    /// <param name="path"></param>
-    /// <returns></returns>
     private ImageSource LoadPngImgSource(string resourceName)
     {
       try
       {
-        // Assembly & Stream
         var assembly = typeof(AppMain).Assembly;
         var icon = assembly.GetManifestResourceStream(resourceName);
+        if (icon == null) return null;
 
-        // Decoder
-        PngBitmapDecoder m_decoder =
+        PngBitmapDecoder decoder =
           new PngBitmapDecoder(icon, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.Default);
 
-        // Source
-        ImageSource m_source = m_decoder.Frames[0];
-        return (m_source);
+        return decoder.Frames[0];
       }
       catch
       {
-        // ignored
+        return null;
       }
-
-      // Fail
-      return null;
     }
 
     #endregion
