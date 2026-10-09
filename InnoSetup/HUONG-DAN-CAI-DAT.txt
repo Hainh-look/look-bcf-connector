@@ -1,0 +1,46 @@
+========================================================================
+            HUONG DAN CAI DAT LOOK BCF - REVIT CONNECTOR
+========================================================================
+
+Phien ban: 1.0.0
+Tuong thich: Autodesk Revit 2021, 2022, 2023, 2024, 2025, 2026
+May chu ket noi: https://bim.lookbim.com (OpenProject BIM - Chuan BCF 2.1)
+
+------------------------------------------------------------------------
+CACH 1: CAI DAT BANG GOI SETUP TU DONG (.EXE)
+------------------------------------------------------------------------
+1. Chay file "LookBcf-Setup-v1.0.0.exe".
+2. Trinh cai dat se hien thi giao dien huong dan.
+3. Chon cac phien ban Revit can cai dat (mac dinh se chon cac ban da cai tren may).
+4. Nhan "Next" va "Install".
+5. Hoan tat va mo Autodesk Revit.
+
+------------------------------------------------------------------------
+CACH 2: CAI DAT BANG GOI PORTABLE 1-CLICK (.ZIP)
+------------------------------------------------------------------------
+(Khong can quyen Administrator, khong lo bi chan boi chinh sach IT)
+
+1. Giai nen file "LookBcf-Revit-v1.0.0-Portable.zip" vao mot thu muc bat ky tren may.
+2. Nhan dup chuot vao file "Install-LookBcf.bat".
+3. Script se tu dong copy cac thu vien tuong thich:
+   - Revit 2021 - 2024: chay tren .NET Framework 4.8
+   - Revit 2025 - 2026: chay tren .NET 8.0 Windows
+4. Thong bao "DA CAI DAT THANH CONG" xuat hien -> Nhan phim bat ky de dong.
+
+------------------------------------------------------------------------
+HUONG DAN SU DUNG TREN REVIT
+------------------------------------------------------------------------
+1. Mo phan mem Autodesk Revit (bat ky ban nao tu 2021 den 2026).
+2. Neu Revit hien hop thoai hoi "Security - Unsigned Add-In", chon "Always Load".
+3. Tren thanh Ribbon menu tren cung, click vao tab "Look BCF".
+4. Click nut "Look BCF" de mo bang dieu khien ket noi:
+   - Bang se mo ben hông Revit (Dockable Panel) hoac cua so noi tien dung.
+   - Dang nhap tai khoan may chu Look BIM (https://bim.lookbim.com).
+   - Xem danh sach van de (Issues / Topics), nhan tao Viewpoint tu mo hinh hoac nhay truc tiep vao goc nhin camera trong Revit!
+
+------------------------------------------------------------------------
+GO CAI DAT
+------------------------------------------------------------------------
+- Voi goi .EXE: Vao Windows Settings -> Apps -> "Look BCF for Autodesk Revit" -> Uninstall.
+- Voi goi Portable: Nhan dup vao file "Uninstall-LookBcf.bat".
+========================================================================
