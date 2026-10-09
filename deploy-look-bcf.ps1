@@ -55,16 +55,21 @@ foreach ($year in $targetYears) {
 
     # Copy binary files
     Get-ChildItem -Path $sourceDir -Exclude "*.addin" | ForEach-Object {
-        Copy-Item -Path $_.FullName -Destination $destModuleDir -Recurse -Force
+        try {
+            Copy-Item -Path $_.FullName -Destination $destModuleDir -Recurse -Force -ErrorAction Stop
+        } catch {
+            Write-Warning "File $($_.Name) is currently locked by a running Revit process. Existing file will be kept."
+        }
     }
 
+    $targetAssemblyPath = Join-Path $destModuleDir "OpenProject.Revit.dll"
     # Write .addin manifest file
     $addinXml = @"
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <RevitAddIns>
   <AddIn Type="Application">
     <Name>Look BCF for Revit $year</Name>
-    <Assembly>LookBcf\OpenProject.Revit.dll</Assembly>
+    <Assembly>$targetAssemblyPath</Assembly>
     <AddInId>5f96a79f-0e28-4d02-be10-251c8032a270</AddInId>
     <FullClassName>OpenProject.Revit.Entry.AppMain</FullClassName>
     <VendorId>LookSpace</VendorId>
