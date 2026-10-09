@@ -157,7 +157,28 @@ namespace OpenProject.Revit.UI
             console.log('[Look BCF] Received from Revit:', message);
         }
     };
-    window.dispatchEvent(new Event('revit.plugin.ready'));
+
+    function notifyAndFixForms() {
+        window.dispatchEvent(new Event('revit.plugin.ready'));
+
+        // Prevent Hotwire Turbo from hanging on 200 OK responses on login form
+        try {
+            document.querySelectorAll('form').forEach(function(f) {
+                if (f.action && (f.action.indexOf('/login') !== -1 || f.action.indexOf('/account') !== -1)) {
+                    f.setAttribute('data-turbo', 'false');
+                }
+            });
+        } catch (e) {
+            console.error('[Look BCF] Error setting form attributes:', e);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', notifyAndFixForms);
+    } else {
+        notifyAndFixForms();
+    }
+    window.addEventListener('load', notifyAndFixForms);
 })();
 ";
         await _webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(bridgeScript);
