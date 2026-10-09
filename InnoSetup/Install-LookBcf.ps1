@@ -52,6 +52,22 @@ while (Get-Process Revit -ErrorAction SilentlyContinue) {
     }
 }
 
+# Check if WebView2 Runtime is installed
+$isWv2Installed = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}", "HKCU:\SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" -ErrorAction SilentlyContinue)
+if (-not $isWv2Installed) {
+    Write-Warning "Phat hien may tinh chua co Microsoft Edge WebView2 Runtime."
+    Write-Host "Dang tu dong tai WebView2 Runtime tu Microsoft..." -ForegroundColor Cyan
+    try {
+        $wv2Setup = "$env:TEMP\MicrosoftEdgeWebview2Setup.exe"
+        Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile $wv2Setup
+        Write-Host "Dang cai dat WebView2 Runtime..." -ForegroundColor Cyan
+        Start-Process -FilePath $wv2Setup -ArgumentList "/silent /install" -Wait
+        Write-Host "Da cai dat thanh cong WebView2 Runtime!" -ForegroundColor Green
+    } catch {
+        Write-Warning "Khong the tai tu dong. Ban co the tai mien phi tai: https://go.microsoft.com/fwlink/p/?LinkId=2124703"
+    }
+}
+
 $installedCount = 0
 
 foreach ($year in $detectedYears) {

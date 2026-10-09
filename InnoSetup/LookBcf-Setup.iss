@@ -109,8 +109,20 @@ begin
   end;
 end;
 
+// Check if Microsoft Edge WebView2 Runtime is installed
+function IsWebView2Installed(): Boolean;
+var
+  Version: string;
+begin
+  Result := RegQueryStringValue(HKLM, 'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'pv', Version) or
+            RegQueryStringValue(HKCU, 'SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'pv', Version) or
+            RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'pv', Version);
+end;
+
 // Pre-flight check: ensure Revit is closed before installing to prevent file locking
 function InitializeSetup(): Boolean;
+var
+  ErrorCode: Integer;
 begin
   while IsRevitRunning() do
   begin
@@ -123,6 +135,20 @@ begin
       Exit;
     end;
   end;
+
+  // Check WebView2 Runtime availability
+  if not IsWebView2Installed() then
+  begin
+    if MsgBox('May tinh cua ban chua cai dat Microsoft Edge WebView2 Runtime.'#13#13 +
+              'Look BCF can WebView2 de hien thi giao dien ket noi BIM.'#13#13 +
+              'Ban co muon mo trang tai chinh thuc tu Microsoft (mien phi, ~2 MB) ngay bay gio khong?',
+              mbConfirmation, MB_YESNO) = IDYES then
+    begin
+      ShellExec('open', 'https://go.microsoft.com/fwlink/p/?LinkId=2124703', '', '', SW_SHOW, ewNoWait, ErrorCode);
+    end;
+  end;
+
   Result := True;
 end;
+
 

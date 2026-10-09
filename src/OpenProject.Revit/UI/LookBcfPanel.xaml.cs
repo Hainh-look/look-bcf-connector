@@ -98,7 +98,30 @@ namespace OpenProject.Revit.UI
           }
         }
 
-        // 3. User Data Folder in LocalAppData (prevents roaming/network lockups)
+        // 3. Verify if WebView2 Runtime is installed on the machine
+        bool isRuntimeAvailable = false;
+        try
+        {
+          var runtimeVersion = CoreWebView2Environment.GetAvailableBrowserVersionString();
+          isRuntimeAvailable = !string.IsNullOrEmpty(runtimeVersion);
+        }
+        catch
+        {
+          isRuntimeAvailable = false;
+        }
+
+        if (!isRuntimeAvailable)
+        {
+          LoadingOverlay.Visibility = Visibility.Collapsed;
+          ErrorOverlay.Visibility = Visibility.Visible;
+          ErrorTitleText.Text = "Chưa cài đặt Microsoft Edge WebView2";
+          ErrorMessageText.Text = "Look BCF cần Microsoft Edge WebView2 Runtime để kết nối máy chủ BIM. Vui lòng bấm nút bên dưới để tải bộ cài chính thức từ Microsoft (miễn phí, ~2 MB).";
+          BtnDownloadWebView2.Visibility = Visibility.Visible;
+          _isInitializing = false;
+          return;
+        }
+
+        // 4. User Data Folder in LocalAppData (prevents roaming/network lockups)
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var userDataFolder = Path.Combine(localAppData, "LookBcf", "WebView2Profile");
         Directory.CreateDirectory(userDataFolder);
@@ -310,9 +333,25 @@ namespace OpenProject.Revit.UI
       }
     }
 
+    private void BtnDownloadWebView2_Click(object sender, RoutedEventArgs e)
+    {
+      try
+      {
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://go.microsoft.com/fwlink/p/?LinkId=2124703")
+        {
+          UseShellExecute = true
+        });
+      }
+      catch (Exception ex)
+      {
+        Log.Error(ex, "Failed to launch WebView2 installer download URL");
+      }
+    }
+
     private async void BtnRetry_Click(object sender, RoutedEventArgs e)
     {
       ErrorOverlay.Visibility = Visibility.Collapsed;
+      BtnDownloadWebView2.Visibility = Visibility.Collapsed;
       await InitializeWebViewAsync();
     }
   }

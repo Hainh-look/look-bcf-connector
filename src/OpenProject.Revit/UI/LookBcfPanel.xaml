@@ -70,9 +70,12 @@
             <Border x:Name="ErrorOverlay" Background="#0A192F" Visibility="Collapsed" Padding="20">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="320">
                     <TextBlock Text="⚠" FontSize="36" Foreground="#EF4444" HorizontalAlignment="Center" Margin="0,0,0,8" />
-                    <TextBlock Text="Không thể tải giao diện Look BCF" FontWeight="Bold" Foreground="#FFFFFF" FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,6" />
+                    <TextBlock x:Name="ErrorTitleText" Text="Không thể tải giao diện Look BCF" FontWeight="Bold" Foreground="#FFFFFF" FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,6" />
                     <TextBlock x:Name="ErrorMessageText" Text="Đang khởi tạo kết nối..." Foreground="#94A3B8" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,16" />
-                    <Button Click="BtnRetry_Click" Content="Thử kết nối lại" Background="#10B981" Foreground="#FFFFFF" Padding="16,6" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button x:Name="BtnDownloadWebView2" Click="BtnDownloadWebView2_Click" Visibility="Collapsed" Content="Tải WebView2 Runtime (Microsoft)" Background="#2563EB" Foreground="#FFFFFF" Padding="14,6" Margin="0,0,8,0" BorderThickness="0" Cursor="Hand" FontWeight="SemiBold" />
+                        <Button Click="BtnRetry_Click" Content="Thử lại" Background="#10B981" Foreground="#FFFFFF" Padding="16,6" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </Grid>
